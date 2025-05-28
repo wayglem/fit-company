@@ -66,3 +66,15 @@ class ExerciseModel(Base):
 
     def __repr__(self):
         return f"<Exercise(id={self.id}, name='{self.name}', difficulty={self.difficulty})>" 
+    
+#Exercise History Model
+class ExerciseHistoryModel(Base):
+    __tablename__ = "exercise_history"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_email = Column(String, ForeignKey("users.email"), nullable=False)
+    exercise_id = Column(Integer, ForeignKey("exercises.id"), nullable=False)
+
+
+    def __repr__(self):
+        return f"<Exercise History(id = {self.id}, email='{self.user_email}', exercise id='{self.exercise_id}')>"

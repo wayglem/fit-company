@@ -2,6 +2,8 @@
 
 The fit monolith is a blazing fast, cutting edge AI fitness coach
 
+## TEAM: Timofey Karpeev, Aleksei Shmakov, Aleksandr Blokhin
+
 ## Getting Started
 
 Start the database with docker compose
@@ -15,6 +17,8 @@ Run the projet
 ```bash
 uv sync
 ./main.py
+# works for me
+#uv run main.py
 ```
 
 ## Usage
@@ -27,4 +31,6 @@ It's a free developer friendly replacement for Postman. Then open the collection
 
 ```bash
 python -m pytest tests/ -v
+# works for me
+#uv run -m pytest tests/ -v
 ```

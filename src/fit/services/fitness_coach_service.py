@@ -1,5 +1,5 @@
 from typing import List, Tuple
-from ..models_db import ExerciseModel, MuscleGroupModel, exercise_muscle_groups
+from ..models_db import ExerciseModel, MuscleGroupModel, ExerciseHistoryModel, exercise_muscle_groups
 from ..database import db_session
 import random
 from time import time
@@ -25,7 +25,7 @@ def calculate_intensity(difficulty: int) -> float:
     # Convert difficulty (1-5) to intensity (0.0-1.0)
     return (difficulty - 1) / 4.0
 
-def request_wod() -> List[Tuple[ExerciseModel, List[Tuple[MuscleGroupModel, bool]]]]:
+def request_wod(user_email: str) -> List[Tuple[ExerciseModel, List[Tuple[MuscleGroupModel, bool]]]]:
     """
     Request a workout of the day (WOD).
     Returns a list of tuples containing:
@@ -41,6 +41,16 @@ def request_wod() -> List[Tuple[ExerciseModel, List[Tuple[MuscleGroupModel, bool
     try:
         # Get all exercises with their muscle groups
         exercises = db.query(ExerciseModel).all()
+
+        exercises_done_before = db.query(ExerciseHistoryModel).filter(
+            ExerciseHistoryModel.user_email == user_email
+        ).all()
+        for exercise in exercises_done_before:
+                # Remove exercises that the user has already done
+            exercises = [ex for ex in exercises if ex.id != exercise.exercise_id]
+        if len(exercises) < 6:
+            delete_exercise_history(user_email) 
+
         
         # Select 6 random exercises
         selected_exercises = random.sample(exercises, 6) if len(exercises) >= 6 else exercises
@@ -61,7 +71,39 @@ def request_wod() -> List[Tuple[ExerciseModel, List[Tuple[MuscleGroupModel, bool
             
             muscle_groups = [(mg, is_primary) for mg, is_primary in stmt.all()]
             result.append((exercise, muscle_groups))
-            
         return result
     finally:
         db.close() 
+
+def insert_exercise_history(user_email: str, exercise_id: int):
+    """
+    Insert an exercise history record for the user.
+    """
+    db = db_session()
+    try:
+        history = ExerciseHistoryModel(
+            user_email=user_email,
+            exercise_id=exercise_id
+        )
+        db.add(history)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise e
+    finally:
+        db.close()
+
+def delete_exercise_history(user_email: str):
+    """
+    Delete an exercise history record for the user.
+    """
+    db = db_session()
+    try:
+        db.query(ExerciseHistoryModel).filter(
+            ExerciseHistoryModel.user_email == user_email,
+        ).delete()
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise e
+    

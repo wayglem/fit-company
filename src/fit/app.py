@@ -11,7 +11,7 @@ from .services.fitness_data_init import init_fitness_data
 from .services.fitness_service import (
     get_all_exercises, get_exercise_by_id, get_exercises_by_muscle_group
 )
-from .services.fitness_coach_service import calculate_intensity, request_wod
+from .services.fitness_coach_service import calculate_intensity, insert_exercise_history, request_wod
 import datetime
 import os
 import random
@@ -195,7 +195,7 @@ def get_exercise(exercise_id):
 def get_wod():
     try:
         # Get the workout exercises with their muscle groups
-        exercises_with_muscles = request_wod()
+        exercises_with_muscles = request_wod(g.user_email)
         
         # Convert to response schema
         wod_exercises = []
@@ -225,6 +225,10 @@ def get_wod():
             )
             wod_exercises.append(wod_exercise)
         
+        for wod_exercise in wod_exercises:
+            # Insert each exercise into the history
+            insert_exercise_history(g.user_email, wod_exercise.id)
+
         response = WodResponseSchema(
             exercises=wod_exercises,
             generated_at=datetime.datetime.now(datetime.UTC).isoformat()
