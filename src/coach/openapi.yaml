@@ -1,0 +1,45 @@
+openapi: 3.0.0
+info:
+  title: Coach Service API
+  version: 1.0.0
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: Service is healthy
+  /generate-wod:
+    post:
+      summary: Generate Workout of the Day
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_email:
+                  type: string
+                excluded_exercises:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: WOD generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  exercises:
+                    type: array
+                    items:
+                      type: object
+                  generated_at:
+                    type: number
+                  user_email:
+                    type: string
+                  source:
+                    type: string

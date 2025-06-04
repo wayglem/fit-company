@@ -19,11 +19,9 @@ def create_user(user: UserSchema) -> UserResponseSchema:
     """
     Create a new user with a random password and persist it to the database
     """
-    # Generate a random password
     random_password = generate_random_password()
     hashed_password = hash_password(random_password)
     
-    # Convert Pydantic model to SQLAlchemy model
     db_user = UserModel(
         email=user.email,
         name=user.name,
@@ -31,7 +29,6 @@ def create_user(user: UserSchema) -> UserResponseSchema:
         password_hash=hashed_password
     )
     
-    # Add and commit to database
     db = db_session()
     try:
         db.add(db_user)
@@ -43,7 +40,6 @@ def create_user(user: UserSchema) -> UserResponseSchema:
     finally:
         db.close()
     
-    # Return response including the clear-text password (one-time reveal)
     response = UserResponseSchema(
         email=user.email,
         name=user.name,
@@ -59,10 +55,9 @@ def get_all_users() -> List[UserSchema]:
     """
     db = db_session()
     try:
-        # Query all users from the database
         db_users = db.query(UserModel).all()
         
-        # Convert SQLAlchemy models to Pydantic models
+
         return [
             UserSchema(
                 email=db_user.email,
@@ -80,12 +75,11 @@ def update_user_profile(email: str, profile: UserProfileSchema) -> Optional[User
     """
     db = db_session()
     try:
-        # Find the user
         user = db.query(UserModel).filter(UserModel.email == email).first()
         if not user:
             return None
             
-        # Update the user's profile
+    
         user.weight = profile.weight
         user.height = profile.height
         user.fitness_goal = profile.fitness_goal
@@ -94,7 +88,6 @@ def update_user_profile(email: str, profile: UserProfileSchema) -> Optional[User
         db.commit()
         db.refresh(user)
         
-        # Return the updated user profile
         return UserProfileResponseSchema(
             email=user.email,
             name=user.name,

@@ -1,4 +1,5 @@
-from sqlalchemy import Column, String, Float, Integer, Boolean, ForeignKey, Table, Text
+from datetime import datetime
+from sqlalchemy import Column, DateTime, String, Float, Integer, Boolean, ForeignKey, Table, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from .database import Base
@@ -11,7 +12,6 @@ class UserModel(Base):
     role = Column(String, nullable=False)
     password_hash = Column(String, nullable=False)
     
-    # Profile information (nullable as they'll be filled during onboarding)
     weight = Column(Float, nullable=True)
     height = Column(Float, nullable=True)
     fitness_goal = Column(String, nullable=True)
@@ -20,7 +20,6 @@ class UserModel(Base):
     def __repr__(self):
         return f"<User(email='{self.email}', name='{self.name}', role='{self.role}')>"
 
-# Junction table for the many-to-many relationship between exercises and muscle groups
 exercise_muscle_groups = Table(
     "exercise_muscle_groups",
     Base.metadata,
@@ -28,7 +27,38 @@ exercise_muscle_groups = Table(
     Column("muscle_group_id", Integer, ForeignKey("muscle_groups.id", ondelete="CASCADE"), primary_key=True),
     Column("is_primary", Boolean, default=False, nullable=False),
 )
+class WODHistoryModel(Base):
+    __tablename__ = "wod_history"
 
+    id = Column(Integer, primary_key=True, index=True)
+    user_email = Column(String, ForeignKey("users.email"), nullable=False)
+    exercise_id = Column(Integer, ForeignKey("exercises.id"), nullable=False)
+    timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    user = relationship("UserModel", backref="wod_entries")
+    exercise = relationship("ExerciseModel")
+
+    # Add this line:
+    exercises = relationship(
+        "ExerciseModel",
+        secondary="wod_exercises",
+        back_populates="wods"
+    )
+
+    def __repr__(self):
+        return f"<WODHistory(user='{self.user_email}', exercise_id={self.exercise_id}, timestamp={self.timestamp})>"
+
+class WODExerciseModel(Base):
+    __tablename__ = "wod_exercises"
+
+    wod_id = Column(Integer, ForeignKey("wod_history.id", ondelete="CASCADE"), primary_key=True)
+    exercise_id = Column(Integer, ForeignKey("exercises.id", ondelete="CASCADE"), primary_key=True)
+
+    wod = relationship("WODHistoryModel", backref="wod_exercise_links")
+    exercise = relationship("ExerciseModel", backref="wod_exercise_links")
+
+    def __repr__(self):
+        return f"<WODExercise(wod_id={self.wod_id}, exercise_id={self.exercise_id})>"
 class MuscleGroupModel(Base):
     __tablename__ = "muscle_groups"
 
@@ -37,7 +67,6 @@ class MuscleGroupModel(Base):
     body_part = Column(String(50), nullable=False)
     description = Column(Text)
     
-    # Relationship to exercises
     exercises = relationship(
         "ExerciseModel", 
         secondary=exercise_muscle_groups,
@@ -57,10 +86,14 @@ class ExerciseModel(Base):
     equipment = Column(String(100))
     instructions = Column(Text)
     
-    # Relationship to muscle groups
     muscle_groups = relationship(
         "MuscleGroupModel",
         secondary=exercise_muscle_groups,
+        back_populates="exercises"
+    )
+    wods = relationship(
+        "WODHistoryModel",
+        secondary="wod_exercises",
         back_populates="exercises"
     )
 
