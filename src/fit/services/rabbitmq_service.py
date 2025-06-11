@@ -29,7 +29,7 @@ class RabbitMQService:
         # Declare the main queue with message TTL of 10 minutes (600000 ms)
         # and max length of 100 messages
         arguments = {
-            "x-message-ttl": 600000,  # 10 minutes
+            "x-message-ttl": 60000,  # 10 minutes
             "x-max-length": 100,
             "x-dead-letter-exchange": "dlx",  # Dead Letter Exchange
             "x-dead-letter-routing-key": f"{self.queue_name}-dead"
@@ -69,6 +69,16 @@ class RabbitMQService:
         except Exception as e:
             print(f"Error publishing message to RabbitMQ: {str(e)}")
             return False
+    
+    def publish_create_wod_job(self, user_id: str, date: str) -> bool:
+        """
+        Publish a create WOD job message to the queue for a specific user and date.
+        """
+        message = {
+            "userId": user_id,
+            "date": date
+        }
+        return self.publish_message(message)
 
     def close(self):
         """Close the connection"""

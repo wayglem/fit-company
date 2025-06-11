@@ -36,10 +36,14 @@ services:
       - ./src/coach:/app/src/coach
     links:
       - coach-db
+      - rabbitmq
     environment:
       - MONOLITH_URL=http://monolith:5000
       - FIT_API_KEY=some_very_secret_key
       - DATABASE_URL=postgresql://postgres:docker@coach-db:5432/coach-db
+      - RABBITMQ_HOST=rabbitmq    
+      - RABBITMQ_USER=rabbit      
+      - RABBITMQ_PASS=docker      
     networks:
       - fit
 

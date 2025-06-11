@@ -1,6 +1,7 @@
-from sqlalchemy import Column, String, Integer, Boolean, ForeignKey, Table, Text
+from sqlalchemy import Column, String, Integer, Boolean, ForeignKey, Table, Text,Date,JSON,DateTime
 from sqlalchemy.orm import relationship
 from .database import Base
+from datetime import datetime
 
 # Junction table for the many-to-many relationship between exercises and muscle groups
 exercise_muscle_groups = Table(
@@ -11,6 +12,26 @@ exercise_muscle_groups = Table(
     Column("is_primary", Boolean, default=False, nullable=False),
 )
 
+class WODModel(Base):
+    __tablename__ = "wods"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_email = Column(String(255), index=True, nullable=False)
+    date = Column(Date, nullable=False)
+    details = Column(JSON, nullable=False)  # Store exercises and info as JSON
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<WOD(id={self.id}, user_email='{self.user_email}', date={self.date})>"
+    
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "user_email": self.user_email,
+            "date": self.date.isoformat(),
+            "details": self.details,
+            "created_at": self.created_at.isoformat(),
+        }
 class MuscleGroupModel(Base):
     __tablename__ = "muscle_groups"
 

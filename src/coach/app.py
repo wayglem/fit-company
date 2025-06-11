@@ -10,7 +10,11 @@ from .models_dto import MuscleGroupImpact, WodExerciseSchema, WodResponseSchema
 
 from .fitness_coach_service import calculate_intensity, request_wod
 
-from .fitness_service import get_exercises_by_muscle_group, get_all_exercises, get_exercise_by_id
+from .fitness_service import (
+    get_exercises_by_muscle_group,
+    get_all_exercises,
+    get_exercise_by_id,
+)
 
 from .database import init_db
 from .fitness_data_init import init_fitness_data
@@ -22,6 +26,7 @@ app.logger.setLevel(logging.DEBUG)
 
 # Force stdout to be unbuffered
 import sys
+
 sys.stdout.reconfigure(line_buffering=True)
 
 # Validate required environment variables
@@ -30,9 +35,11 @@ if not os.getenv("FIT_API_KEY"):
 
 # Register blueprints
 
+
 @app.route("/health")
 def health():
     return {"status": "UP"}
+
 
 @app.route("/exercises", methods=["GET"])
 def get_exercises():
@@ -48,6 +55,7 @@ def get_exercises():
     except Exception as e:
         return jsonify({"error": "Error retrieving exercises", "details": str(e)}), 500
 
+
 @app.route("/exercises/<int:exercise_id>", methods=["GET"])
 def get_exercise(exercise_id):
     try:
@@ -58,12 +66,13 @@ def get_exercise(exercise_id):
     except Exception as e:
         return jsonify({"error": "Error retrieving exercise", "details": str(e)}), 500
 
+
 @app.route("/createWod", methods=["POST"])
 def create_wod():
     user_email = request.json.get("user_email")
     if not user_email:
         return jsonify({"error": "user_email is required"}), 400
-        
+
     try:
         # Fetch user last workout exercises from monolith
         # app.logger.debug(f"History exercises: {history_exercises}")
@@ -78,11 +87,12 @@ def create_wod():
                     body_part=mg.body_part,
                     is_primary=is_primary,
                     # Higher intensity for primary muscle groups
-                    intensity=calculate_intensity(exercise.difficulty) * (1.2 if is_primary else 0.8)
+                    intensity=calculate_intensity(exercise.difficulty)
+                    * (1.2 if is_primary else 0.8),
                 )
                 for mg, is_primary in muscle_groups
             ]
-            
+
             # Create exercise object
             wod_exercise = WodExerciseSchema(
                 id=exercise.id,
@@ -90,21 +100,23 @@ def create_wod():
                 description=exercise.description,
                 difficulty=exercise.difficulty,
                 muscle_groups=muscle_impacts,
-                suggested_weight=random.uniform(5.0, 50.0),  # Random weight between 5 and 50 kg
-                suggested_reps=random.randint(8, 15)  # Random reps between 8 and 15
+                suggested_weight=random.uniform(
+                    5.0, 50.0
+                ),  # Random weight between 5 and 50 kg
+                suggested_reps=random.randint(8, 15),  # Random reps between 8 and 15
             )
             wod_exercises.append(wod_exercise)
-        
+
         response = WodResponseSchema(
             exercises=wod_exercises,
-            generated_at=datetime.datetime.now(datetime.UTC).isoformat()
+            generated_at=datetime.datetime.now(datetime.UTC).isoformat(),
         )
-        
+
         return jsonify(response.model_dump()), 200
 
-        
     except requests.RequestException as e:
         return jsonify({"error": f"Failed to fetch user history: {str(e)}"}), 500
+
 
 def run_app():
     """Entry point for the application script"""
@@ -112,9 +124,9 @@ def run_app():
     init_db()
 
     init_fitness_data()
-    
+
     app.run(host="0.0.0.0", port=5000, debug=True)
+
 
 if __name__ == "__main__":
     run_app()
-
