@@ -7,6 +7,25 @@ from ..models_db import UserExerciseHistory, WorkoutModel
 from ..models_dto import ExerciseId, WodExerciseSchema, WorkoutExercisesList, WorkoutResponseSchema
 from sqlalchemy import func
 import os
+import random
+
+EXERCISE_POOL = [
+    "Push-ups",
+    "Sit-ups",
+    "Squats",
+    "Burpees",
+    "Jumping Jacks",
+    "Lunges",
+    "Plank",
+    "Mountain Climbers",
+    "High Knees",
+    "Crunches",
+    "Pull-ups",
+    "Deadlifts",
+    "Bench Press",
+    "Bicep Curls",
+    "Tricep Dips",
+]
 
 def register_workout(user_email: str, exercise_ids: List[int]):
     """
@@ -130,3 +149,9 @@ def perform_workout(workout_id: int, user_email: str):
             raise Exception("Workout not found or user does not have access to this workout")
     finally:
         db.close()
+
+def get_exercises(n: int):
+    if n > len(EXERCISE_POOL):
+        raise ValueError(f"Cannot generate {n} unique exercises; only {len(EXERCISE_POOL)} available.")
+    
+    return random.sample(EXERCISE_POOL, n)

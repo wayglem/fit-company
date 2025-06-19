@@ -1,4 +1,5 @@
 version: "3.7"
+
 services:
   monolith:
     build:
@@ -20,7 +21,6 @@ services:
       - RABBITMQ_DEFAULT_PASS=docker
     networks:
       - fit
-    # entrypoint: ["flask", "run"]
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -49,6 +49,8 @@ services:
       - fit
     depends_on:
       rabbitmq:
+        condition: service_healthy
+      coach-db:
         condition: service_healthy
 
   monolith-db:
@@ -87,11 +89,90 @@ services:
     networks:
       - fit
 
+  stats:
+    build:
+      context: .
+      dockerfile: stats.Dockerfile
+    ports:
+      - "12106:5002"
+    volumes:
+      - ./src/stats:/app/src/stats
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      stats-db:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://postgres:docker@stats-db:5432/stats-db
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_DEFAULT_USER=rabbit
+      - RABBITMQ_DEFAULT_PASS=docker
+      - BOOTSTRAP_KEY=stats-bootstrap-key
+    networks:
+      - fit
+
+  stats-db:
+    image: postgres:latest
+    ports:
+      - "12107:5432"
+    command: postgres -c max_connections=200
+    user: postgres
+    environment:
+      - POSTGRES_DB=stats-db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=docker
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready", "-d", "stats-db"]
+      interval: 5s
+      timeout: 30s
+      retries: 5
+    networks:
+      - fit
+
+  billing:
+    build:
+      context: .
+      dockerfile: billing.Dockerfile
+    ports:
+      - "12108:5003"
+    volumes:
+      - ./src/billing:/app/src/billing
+    depends_on:
+      billing-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://postgres:docker@billing-db:5432/billing-db
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_DEFAULT_USER=rabbit
+      - RABBITMQ_DEFAULT_PASS=docker
+    networks:
+      - fit
+
+  billing-db:
+    image: postgres:13
+    ports:
+      - "12109:5432"
+    command: postgres -c max_connections=200
+    user: postgres
+    environment:
+      - POSTGRES_DB=billing-db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=docker
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready", "-d", "billing-db"]
+      interval: 5s
+      timeout: 30s
+      retries: 5
+    networks:
+      - fit
+
   rabbitmq:
     image: rabbitmq:3-management
     ports:
-      - "12104:5672" # AMQP protocol port
-      - "12105:15672" # Management interface port
+      - "12104:5672"     # AMQP
+      - "12105:15672"    # Management UI
     environment:
       - RABBITMQ_DEFAULT_USER=rabbit
       - RABBITMQ_DEFAULT_PASS=docker
@@ -100,8 +181,13 @@ services:
       interval: 5s
       timeout: 30s
       retries: 5
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq/mnesia
     networks:
       - fit
+
+volumes:
+  rabbitmq_data:
 
 networks:
   fit:
